@@ -14,6 +14,11 @@ export type PageResp<T> = Resp<{
 export type FsListResp = Resp<{
   content: Obj[]
   total: number
+  filtered_total?: number
+  page?: number
+  per_page?: number
+  has_more?: boolean
+  pages_total?: number
   readme: string
   header: string
   write: boolean
@@ -37,6 +42,7 @@ export type FsGetResp = Resp<
     readme: string
     header: string
     provider: string
+    web_proxy?: boolean
     related: Obj[]
   }
 >

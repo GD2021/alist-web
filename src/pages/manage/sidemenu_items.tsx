@@ -24,7 +24,8 @@ import { Component, lazy } from "solid-js"
 import { joinBase } from "~/utils"
 import { Group, UserRole } from "~/types"
 import { FaSolidBook, FaSolidDatabase } from "solid-icons/fa"
-import { TbArchive, TbDevices2 } from "solid-icons/tb"
+import { TbArchive, TbDevices2, TbFileExport } from "solid-icons/tb"
+import { TbLink } from "solid-icons/tb"
 import { FaSolidUserGear } from "solid-icons/fa"
 import { BiRegularMessageAltDetail } from "solid-icons/bi"
 import { RiCommunicationChatSettingsLine } from "solid-icons/ri"
@@ -67,6 +68,12 @@ export const side_menu_items: SideMenuItem[] = [
         icon: BsCameraFill,
         to: "/@manage/settings/preview",
         component: () => <CommonSettings group={Group.PREVIEW} />,
+      },
+      {
+        title: "manage.sidemenu.preview-settings",
+        icon: BsCameraFill,
+        to: "/@manage/settings/preview-settings",
+        component: lazy(() => import("./preview-settings")),
       },
       {
         title: "manage.sidemenu.global",
@@ -113,6 +120,12 @@ export const side_menu_items: SideMenuItem[] = [
         icon: BsHddNetwork,
         to: "/@manage/settings/ftp",
         component: () => <CommonSettings group={Group.FTP} />,
+      },
+      {
+        title: "manage.sidemenu.frp",
+        icon: BsHddNetwork,
+        to: "/@manage/settings/frp",
+        component: lazy(() => import("./settings/Frp")),
       },
       {
         title: "manage.sidemenu.traffic",
@@ -166,6 +179,13 @@ export const side_menu_items: SideMenuItem[] = [
         to: "/@manage/tasks/copy",
         role: UserRole.GENERAL,
         component: lazy(() => import("./tasks/Copy")),
+      },
+      {
+        title: "manage.sidemenu.strm_generate",
+        icon: TbFileExport,
+        to: "/@manage/tasks/strm_generate",
+        role: UserRole.ADMIN,
+        component: lazy(() => import("./tasks/StrmGenerate")),
       },
       {
         title: "manage.sidemenu.decompress",
@@ -265,6 +285,13 @@ export const side_menu_items: SideMenuItem[] = [
         component: lazy(() => import("./session/management")),
       },
     ],
+  },
+  {
+    title: "manage.sidemenu.shares",
+    icon: TbLink,
+    to: "/@manage/shares",
+    role: UserRole.GENERAL,
+    component: lazy(() => import("./shares")),
   },
   {
     title: "manage.sidemenu.storages",

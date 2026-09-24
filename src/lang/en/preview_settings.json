@@ -1,0 +1,36 @@
+{
+  "add_extension": "Add extension",
+  "add_iframe": "Add iframe previewer",
+  "copy_to_extensions": "Copy settings to...",
+  "disable_all": "Disable all",
+  "enable_all": "Enable all",
+  "disable_all_confirm": "Disable every preview for all extensions?",
+  "enable_all_confirm": "Enable every preview for all extensions?",
+  "disable_current": "Disable all for this extension",
+  "enable_current": "Enable all for this extension",
+  "source": {
+    "builtin": "built-in",
+    "iframe": "iframe",
+    "external": "external"
+  },
+  "builtin": {
+    "html": "HTML render",
+    "aliyun_video": "Aliyun video previewer",
+    "doubao": "Doubao preview",
+    "markdown": "Markdown",
+    "markdown_word_wrap": "Markdown (word wrap)",
+    "url_open": "URL open",
+    "text_editor": "Text editor",
+    "image": "Image",
+    "video": "Video",
+    "audio": "Audio",
+    "ipa": "Ipa",
+    "plist": "Plist",
+    "aliyun_office": "Aliyun office previewer",
+    "asciinema": "Asciinema",
+    "video360": "Video 360",
+    "archive": "Archive preview",
+    "lark_preview": "Lark preview",
+    "lark_tools": "Lark export tools"
+  }
+}

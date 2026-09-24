@@ -2,7 +2,12 @@ import { ext, recordToArray, strToRegExp } from "~/utils"
 
 const settings: Record<string, string> = {}
 
+export const DEFAULT_PAGE_SIZE = 200
+export const MAX_PAGE_SIZE = 500
+
 export const setSettings = (items: Record<string, string>) => {
+  previewSettingsCache = undefined
+  previewsRecord = {}
   Object.keys(items).forEach((key) => {
     settings[key] = items[key]
   })
@@ -85,9 +90,18 @@ export const getPagination = (): {
   size: number
   type: "all" | "pagination" | "load_more" | "auto_load_more"
 } => {
+  const rawType = (getSetting("pagination_type") || "all") as
+    | "all"
+    | "pagination"
+    | "load_more"
+    | "auto_load_more"
+  const size = Math.min(
+    MAX_PAGE_SIZE,
+    Math.max(1, getSettingNumber("default_page_size", DEFAULT_PAGE_SIZE)),
+  )
   return {
-    type: (getSetting("pagination_type") || "all") as any,
-    size: getSettingNumber("default_page_size", 30),
+    type: rawType,
+    size,
   }
 }
 
@@ -106,4 +120,33 @@ export const getHideFiles = () => {
       })
   }
   return hideFiles
+}
+
+export interface PreviewOverride {
+  order?: string[]
+  disabled?: string[]
+}
+export type PreviewSettingsMap = Record<string, PreviewOverride>
+
+let previewSettingsCache: PreviewSettingsMap | undefined
+
+export const getPreviewSettings = (): PreviewSettingsMap => {
+  if (previewSettingsCache !== undefined) return previewSettingsCache
+  const raw = getSetting("preview_settings")
+  if (!raw) {
+    previewSettingsCache = {}
+    return previewSettingsCache
+  }
+  try {
+    const parsed = JSON.parse(raw)
+    previewSettingsCache = parsed && typeof parsed === "object" ? parsed : {}
+  } catch (e) {
+    console.error("failed parse preview_settings, use default", e)
+    previewSettingsCache = {}
+  }
+  return previewSettingsCache!
+}
+
+export const invalidatePreviewSettings = () => {
+  previewSettingsCache = undefined
 }

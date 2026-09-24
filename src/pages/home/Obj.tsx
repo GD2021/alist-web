@@ -40,10 +40,18 @@ export const Obj = () => {
       ? parseInt(searchParams["page"], 10) || 1
       : undefined
   })
+  const perPage = createMemo(() => {
+    if (pagination.type === "all") {
+      return -1
+    }
+    return pagination.type === "pagination"
+      ? parseInt(searchParams["per_page"], 10) || pagination.size
+      : undefined
+  })
   let lastPathname: string
   let lastPage: number | undefined
   createEffect(
-    on([pathname, page], async ([pathname, page]) => {
+    on([pathname, page, perPage], async ([pathname, page, perPage]) => {
       if (lastPathname) {
         recordHistory(lastPathname, lastPage)
       }
@@ -51,7 +59,7 @@ export const Obj = () => {
       lastPage = page
       useObjTitle()
 
-      await handlePathChange(pathname, page)
+      await handlePathChange(pathname, page, undefined, undefined, perPage)
     }),
   )
   return (
@@ -85,7 +93,7 @@ export const Obj = () => {
               title={t("home.input_password")}
               password={password}
               setPassword={setPassword}
-              enterCallback={() => refresh(true)}
+              enterCallback={() => refresh(true, false)}
             >
               <Text>{t("global.have_account")}</Text>
               <Text

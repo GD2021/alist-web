@@ -43,6 +43,30 @@ function GetDefaultValue(type: Type, value?: string) {
 
 type Drivers = Record<string, DriverInfo>
 
+// show_when: "field=a|b" — the item is shown only when the referenced field
+// currently equals one of the listed values. Unset fields fall back to the
+// referenced item's default.
+export function isItemVisible(
+  item: DriverItem,
+  values: Record<string, any>,
+  items: DriverItem[],
+): boolean {
+  const cond = item.show_when?.trim()
+  if (!cond) return true
+  const eq = cond.indexOf("=")
+  if (eq < 0) return true
+  const field = cond.slice(0, eq).trim()
+  const allowed = cond
+    .slice(eq + 1)
+    .split("|")
+    .map((v) => v.trim())
+  let current = values[field]
+  if (current === undefined || current === null || current === "") {
+    current = items.find((i) => i.name === field)?.default ?? ""
+  }
+  return allowed.includes(String(current))
+}
+
 const AddOrEdit = () => {
   const t = useT()
   const { params, back, to } = useRouter()
@@ -89,10 +113,21 @@ const AddOrEdit = () => {
     return r.post(`/admin/storage/${id ? "update" : "create"}`, storage)
   })
   const alert = createMemo(() => {
-    const i = drivers()[storage.driver]?.config.alert
-    console.log(i)
-    if (i) {
-      return i.split("|")[0]
+    const raw = drivers()[storage.driver]?.config.alert?.trim()
+    if (!raw) return
+
+    const [maybeStatus, ...messageParts] = raw.split("|")
+    const status = ["info", "success", "warning", "danger"].includes(
+      maybeStatus,
+    )
+      ? maybeStatus
+      : "info"
+    const fallbackText =
+      messageParts.length > 0 ? messageParts.join("|").trim() : raw
+
+    return {
+      status,
+      fallbackText,
     }
   })
   return (
@@ -138,9 +173,13 @@ const AddOrEdit = () => {
           }}
         />
         <Show when={alert()}>
-          <Alert status={alert() as any} w="$full">
+          <Alert status={alert()!.status as any} w="$full">
             <AlertIcon />
-            {t(`drivers.config.${storage.driver}.alert`)}
+            {t(
+              `drivers.config.${storage.driver}.alert`,
+              undefined,
+              alert()!.fallbackText,
+            )}
           </Alert>
         </Show>
       </VStack>
@@ -151,6 +190,7 @@ const AddOrEdit = () => {
               <Item
                 {...item}
                 driver="common"
+                additionValues={addition}
                 value={(storage as any)[item.name]}
                 onChange={(val: any) => {
                   setStorage(item.name as keyof Storage, val)
@@ -160,14 +200,23 @@ const AddOrEdit = () => {
           </For>
           <For each={drivers()[storage.driver].additional}>
             {(item) => (
-              <Item
-                {...item}
-                driver={storage.driver}
-                value={addition[item.name] as any}
-                onChange={(val: any) => {
-                  setAddition(item.name, val)
-                }}
-              />
+              <Show
+                when={isItemVisible(
+                  item,
+                  addition,
+                  drivers()[storage.driver].additional,
+                )}
+              >
+                <Item
+                  {...item}
+                  driver={storage.driver}
+                  additionValues={addition}
+                  value={addition[item.name] as any}
+                  onChange={(val: any) => {
+                    setAddition(item.name, val)
+                  }}
+                />
+              </Show>
             )}
           </For>
         </Show>

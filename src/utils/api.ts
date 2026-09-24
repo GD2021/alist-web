@@ -5,15 +5,22 @@ import {
   FsListResp,
   Obj,
   PResp,
+  PPageResp,
   FsSearchResp,
   RenameObj,
   ArchiveMeta,
   ArchiveList,
   StoreObj,
+  ShareItem,
+  PublicShareInfo,
+  PublicShareList,
+  PublicShareGet,
 } from "~/types"
 import { r } from "."
 import { me } from "~/store"
 import { joinBase, pathJoin } from "~/utils"
+
+const DEFAULT_PAGE_SIZE = 50
 
 export const fsGet = (
   path: string = "/",
@@ -35,7 +42,7 @@ export const fsList = (
   path: string = "/",
   password = "",
   page = 1,
-  per_page = 0,
+  per_page = DEFAULT_PAGE_SIZE,
   refresh = false,
   cancelToken?: CancelToken,
 ): Promise<FsListResp> => {
@@ -109,8 +116,15 @@ export const fsCopy = (
   dst_dir: string,
   names: string[],
   overwrite: boolean,
+  skip_existing?: boolean,
 ): PEmptyResp => {
-  return r.post("/fs/copy", { src_dir, dst_dir, names, overwrite })
+  return r.post("/fs/copy", {
+    src_dir,
+    dst_dir,
+    names,
+    overwrite,
+    skip_existing,
+  })
 }
 
 export const fsRemove = (dir: string, names: string[]): PEmptyResp => {
@@ -244,6 +258,94 @@ export const offlineDownload = (
   delete_policy: string,
 ): PEmptyResp => {
   return r.post(`/fs/add_offline_download`, { path, urls, tool, delete_policy })
+}
+
+export const createShare = (payload: {
+  path: string
+  share_id?: string
+  name?: string
+  password?: string
+  expire_at?: string
+  expire_hours?: number
+  access_limit?: number
+  burn_after_read?: boolean
+  allow_preview?: boolean
+  allow_download?: boolean
+}): PResp<ShareItem> => {
+  return r.post("/share/create", payload)
+}
+
+export const updateShare = (payload: {
+  share_id: string
+  new_share_id?: string
+  name?: string
+  password?: string
+  expire_at?: string
+  access_limit?: number
+  allow_preview?: boolean
+  allow_download?: boolean
+}): PResp<ShareItem> => {
+  return r.post("/share/update", payload)
+}
+
+export const getShareList = (
+  page = 1,
+  per_page = 100,
+): PPageResp<ShareItem> => {
+  return r.get("/share/list", {
+    params: {
+      page,
+      per_page,
+    },
+  })
+}
+
+export const deleteShare = (share_id: string): PEmptyResp => {
+  return r.post("/share/delete", { share_id })
+}
+
+export const disableShare = (share_id: string): PEmptyResp => {
+  return r.post("/share/disable", { share_id })
+}
+
+export const getPublicShareInfo = (
+  share_id: string,
+  token?: string,
+): PResp<PublicShareInfo> => {
+  return r.get("/public/share/info", {
+    params: {
+      share_id,
+      auth: token || undefined,
+    },
+  })
+}
+
+export const authPublicShare = (
+  share_id: string,
+  password: string,
+): PResp<{ token: string }> => {
+  return r.post("/public/share/auth", {
+    share_id,
+    password,
+  })
+}
+
+export const listPublicShare = (payload: {
+  share_id: string
+  path?: string
+  token?: string
+  page?: number
+  per_page?: number
+}): PResp<PublicShareList> => {
+  return r.post("/public/share/list", payload)
+}
+
+export const getPublicShare = (payload: {
+  share_id: string
+  path?: string
+  token?: string
+}): PResp<PublicShareGet> => {
+  return r.post("/public/share/get", payload)
 }
 
 export const fetchText = async (

@@ -6,6 +6,7 @@ import { Obj, StoreObj } from "~/types"
 import { bus, log, trimBase } from "~/utils"
 import { keyPressed } from "./key-event"
 import { local } from "./local_settings"
+import { getSettingBool } from "./settings"
 
 export enum State {
   Initial, // Initial state
@@ -29,6 +30,7 @@ const [objStore, setObjStore] = createStore<{
   readme: string
   header: string
   provider: string
+  web_proxy: boolean
   // pageIndex: number;
   // pageSize: number;
   state: State
@@ -44,6 +46,7 @@ const [objStore, setObjStore] = createStore<{
   readme: "",
   header: "",
   provider: "",
+  web_proxy: false,
   // pageIndex: 1,
   // pageSize: 50,
   state: State.Initial,
@@ -54,6 +57,7 @@ const setObjs = (objs: Obj[]) => {
   lastChecked.start = -1
   lastChecked.end = -1
   setObjStore("objs", objs)
+  applySortPreference()
   setObjStore("obj", "is_dir", true)
 }
 
@@ -69,6 +73,9 @@ export const ObjStore = {
   },
   setProvider: (provider: string) => {
     setObjStore("provider", provider)
+  },
+  setWebProxy: (web_proxy: boolean) => {
+    setObjStore("web_proxy", web_proxy)
   },
   setObjs: setObjs,
   setTotal: (total: number) => {
@@ -112,6 +119,7 @@ export const appendObjs = (objs: Obj[]) => {
     "objs",
     produce((prev) => prev.push(...objs)),
   )
+  applySortPreference()
 }
 
 const lastChecked = {
@@ -201,11 +209,102 @@ const layoutRecord: Record<string, LayoutType> = (() => {
     return {}
   }
 })()
+type SortPreference = { orderBy: OrderBy; reverse: boolean }
+const activeSortRecord: Record<string, SortPreference> = {}
+const sortRecord: Record<string, SortPreference> = (() => {
+  try {
+    return JSON.parse(localStorage.getItem("sortRecord") || "{}")
+  } catch (e) {
+    return {}
+  }
+})()
+const globalSortRecordKey = "globalSortPreference"
+const isFrontendRememberSortEnabled = () =>
+  getSettingBool("frontend_remember_sort")
+const getGlobalSortPreference = (): SortPreference | undefined => {
+  try {
+    const preference = JSON.parse(
+      localStorage.getItem(globalSortRecordKey) || "null",
+    ) as SortPreference | null
+    if (!preference || !isValidOrderBy(preference.orderBy)) {
+      return undefined
+    }
+    return {
+      orderBy: preference.orderBy,
+      reverse: !!preference.reverse,
+    }
+  } catch (e) {
+    return undefined
+  }
+}
 
 bus.on("pathname", (p) => setPathname(p))
 
 export const getCurrentPath = () => {
   return trimBase(pathname())
+}
+
+const normalizeSortPath = (path: string) => {
+  if (!path || path === "/") return "/"
+  const normalized = path.replace(/\/+$/g, "")
+  return normalized || "/"
+}
+
+const isValidOrderBy = (value: unknown): value is OrderBy => {
+  return value === "name" || value === "size" || value === "modified"
+}
+
+export const getSortPreference = (
+  path = getCurrentPath(),
+): { orderBy: OrderBy; reverse: boolean } | undefined => {
+  const normalizedPath = normalizeSortPath(path)
+  const preference = activeSortRecord[normalizedPath]
+  if (preference && isValidOrderBy(preference.orderBy)) {
+    return {
+      orderBy: preference.orderBy,
+      reverse: !!preference.reverse,
+    }
+  }
+  if (!isFrontendRememberSortEnabled()) return undefined
+  const storedPreference = sortRecord[normalizedPath]
+  if (storedPreference && isValidOrderBy(storedPreference.orderBy)) {
+    return {
+      orderBy: storedPreference.orderBy,
+      reverse: !!storedPreference.reverse,
+    }
+  }
+  return getGlobalSortPreference()
+}
+
+export const setSortPreference = (
+  orderBy: OrderBy,
+  reverse = false,
+  path = getCurrentPath(),
+) => {
+  const normalizedPath = normalizeSortPath(path)
+  activeSortRecord[normalizedPath] = {
+    orderBy,
+    reverse,
+  }
+  if (!isFrontendRememberSortEnabled()) return
+  sortRecord[normalizedPath] = {
+    orderBy,
+    reverse,
+  }
+  localStorage.setItem("sortRecord", JSON.stringify(sortRecord))
+  localStorage.setItem(
+    globalSortRecordKey,
+    JSON.stringify({
+      orderBy,
+      reverse,
+    } satisfies SortPreference),
+  )
+}
+
+export const applySortPreference = (path = getCurrentPath()) => {
+  const preference = getSortPreference(path)
+  if (!preference) return
+  sortObjs(preference.orderBy, preference.reverse)
 }
 
 const [_layout, _setLayout] = createSignal<LayoutType>(
